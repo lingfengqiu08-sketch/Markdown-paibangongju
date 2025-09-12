@@ -7,7 +7,7 @@ on:
     types: [created]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
   issues: write
 
@@ -26,9 +26,44 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Claude Code Review
-        uses: anthropics/claude-code-action@main
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          python-version: '3.x'
+      
+      - name: Install Anthropic SDK
+        run: |
+          pip install anthropic
+      
+      - name: Claude Code Review
         env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -c "
+          import os
+          import sys
+          from anthropic import Anthropic
+          
+          # Test API key
+          api_key = os.environ.get('ANTHROPIC_API_KEY')
+          if not api_key:
+              print('❌ ANTHROPIC_API_KEY not found in secrets')
+              sys.exit(1)
+          
+          try:
+              client = Anthropic(api_key=api_key)
+              print('✅ API key is valid')
+              
+              # Simple test message
+              response = client.messages.create(
+                  model='claude-3-haiku-20240307',
+                  max_tokens=100,
+                  messages=[{'role': 'user', 'content': 'Say hello'}]
+              )
+              print(f'Claude says: {response.content[0].text}')
+              print('✅ Claude API is working!')
+          except Exception as e:
+              print(f'❌ Error: {e}')
+              sys.exit(1)
+          "
