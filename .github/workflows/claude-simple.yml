@@ -1,0 +1,26 @@
+name: Claude Test
+
+on:
+  workflow_dispatch:
+  issue_comment:
+    types: [created]
+
+jobs:
+  test-claude:
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' && 
+       contains(github.event.comment.body, '@claude-test'))
+    
+    steps:
+      - name: Test API Key
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "❌ ANTHROPIC_API_KEY is not set in secrets"
+            exit 1
+          fi
+          echo "✅ ANTHROPIC_API_KEY is configured"
+          echo "Key starts with: ${ANTHROPIC_API_KEY:0:10}..."
